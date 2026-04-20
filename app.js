@@ -50,6 +50,7 @@ const markerLayer = L.layerGroup().addTo(map);
 buildFilterButtons();
 renderMarkers();
 renderDashboard();
+syncDashboardButtonState();
 
 map.on("click", (e) => {
   openCreateForm(e.latlng);
@@ -65,31 +66,32 @@ form.addEventListener("submit", (e) => {
   const note = String(data.get("note") || "").trim();
   if (!placeName || !categories[category]) return;
 
-  if (editingEntryId) {
-    entries = entries.map((entry) =>
-      entry.id === editingEntryId
-        ? {
-            ...entry,
-            placeName,
-            category,
-            note,
-          }
-        : entry
-    );
-  } else {
-    const newEntry = {
-      id: crypto.randomUUID(),
-      placeName,
-      category,
-      note,
-      lat: selectedLatLng.lat,
-      lng: selectedLatLng.lng,
-      createdAt: new Date().toISOString(),
-    };
-    entries.push(newEntry);
-  }
+  const nextEntries = editingEntryId
+    ? entries.map((entry) =>
+        entry.id === editingEntryId
+          ? {
+              ...entry,
+              placeName,
+              category,
+              note,
+            }
+          : entry
+      )
+    : [
+        ...entries,
+        {
+          id: crypto.randomUUID(),
+          placeName,
+          category,
+          note,
+          lat: selectedLatLng.lat,
+          lng: selectedLatLng.lng,
+          createdAt: new Date().toISOString(),
+        },
+      ];
 
-  saveEntries(entries);
+  if (!saveEntries(nextEntries)) return;
+  entries = nextEntries;
   renderMarkers();
   renderDashboard();
   closeForm();
@@ -120,6 +122,7 @@ myLocationBtn.addEventListener("click", () => {
 
 toggleDashboardBtn.addEventListener("click", () => {
   dashboardPanel.classList.toggle("hidden");
+  syncDashboardButtonState();
 });
 
 exportCsvBtn.addEventListener("click", () => {
@@ -150,7 +153,7 @@ exportCsvBtn.addEventListener("click", () => {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  revokeObjectUrlLater(url);
 });
 
 exportImageBtn.addEventListener("click", async () => {
@@ -179,7 +182,7 @@ exportImageBtn.addEventListener("click", async () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      revokeObjectUrlLater(url);
     }, "image/png");
   } catch {
     alert("지도를 이미지로 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
@@ -285,8 +288,9 @@ map.on("popupopen", (event) => {
       if (!targetId) return;
       const ok = window.confirm("이 장소 기록을 삭제할까요?");
       if (!ok) return;
-      entries = entries.filter((entry) => entry.id !== targetId);
-      saveEntries(entries);
+      const nextEntries = entries.filter((entry) => entry.id !== targetId);
+      if (!saveEntries(nextEntries)) return;
+      entries = nextEntries;
       renderMarkers();
       renderDashboard();
       closeForm();
@@ -305,10 +309,12 @@ function buildFilterButtons() {
     btn.className = "btn" + (key === activeFilter ? " active" : "");
     btn.textContent = label;
     btn.dataset.filter = key;
+    btn.setAttribute("aria-pressed", String(key === activeFilter));
     btn.addEventListener("click", () => {
       activeFilter = key;
       [...filterWrap.querySelectorAll("button")].forEach((node) => {
         node.classList.toggle("active", node.dataset.filter === key);
+        node.setAttribute("aria-pressed", String(node.dataset.filter === key));
       });
       renderMarkers();
     });
@@ -403,7 +409,24 @@ function loadEntries() {
 }
 
 function saveEntries(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch {
+    alert("기록을 저장하지 못했어요. 브라우저 저장 공간이나 개인정보 보호 설정을 확인해 주세요.");
+    return false;
+  }
+}
+
+function revokeObjectUrlLater(url) {
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function syncDashboardButtonState() {
+  toggleDashboardBtn.setAttribute(
+    "aria-expanded",
+    String(!dashboardPanel.classList.contains("hidden"))
+  );
 }
 
 function openCreateForm(latlng) {

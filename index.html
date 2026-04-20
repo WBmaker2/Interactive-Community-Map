@@ -28,13 +28,21 @@
           </p>
         </div>
       </div>
-      <div class="filter-wrap" id="filterWrap" aria-label="카테고리 필터"></div>
+      <div class="filter-wrap" id="filterWrap" role="group" aria-label="카테고리 필터"></div>
       <div class="top-actions">
         <button type="button" id="myLocationBtn" class="btn">내 위치 보기</button>
         <button type="button" id="exportCsvBtn" class="btn">CSV 내보내기</button>
         <button type="button" id="exportImageBtn" class="btn">이미지 내보내기</button>
         <button type="button" id="exportPdfBtn" class="btn">PDF 다운로드</button>
-        <button type="button" id="toggleDashboardBtn" class="btn">대시보드</button>
+        <button
+          type="button"
+          id="toggleDashboardBtn"
+          class="btn"
+          aria-controls="dashboardPanel"
+          aria-expanded="false"
+        >
+          대시보드
+        </button>
       </div>
     </header>
 
