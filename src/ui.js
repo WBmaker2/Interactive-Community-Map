@@ -1,6 +1,7 @@
 import { CATEGORIES, CATEGORY_BY_KEY, getCategoryLabel } from "./config.js";
 import { buildCsv, downloadCsv, downloadJson, exportImage, exportPdf } from "./exporters.js";
 import { createCommunityMap } from "./map-view.js";
+import { findSchoolLocation } from "./school-search.js";
 import {
   createEntryId,
   exportAppJson,
@@ -95,6 +96,11 @@ export function initApp({ windowObj = window, documentObj = document, L = window
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  });
+
+  refs.schoolSearchForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await searchSchoolLocation();
   });
 
   refs.toggleDashboardBtn.addEventListener("click", () => {
@@ -250,6 +256,46 @@ export function initApp({ windowObj = window, documentObj = document, L = window
     editingEntryId = "";
   }
 
+  async function searchSchoolLocation() {
+    const query = refs.schoolSearchInput.value.trim();
+    if (!query) {
+      setSchoolSearchStatus("학교 이름을 입력해 주세요.");
+      refs.schoolSearchInput.focus();
+      return;
+    }
+
+    if (typeof windowObj.fetch !== "function") {
+      setSchoolSearchStatus("이 브라우저에서는 학교 위치 검색을 사용할 수 없어요.");
+      return;
+    }
+
+    refs.schoolSearchBtn.disabled = true;
+    refs.schoolSearchInput.disabled = true;
+    setSchoolSearchStatus("학교 위치를 찾는 중이에요.");
+
+    try {
+      const result = await findSchoolLocation(query, windowObj.fetch.bind(windowObj));
+      if (!result) {
+        setSchoolSearchStatus("검색 결과가 없어요. 지역명과 학교명을 함께 입력해 주세요.");
+        return;
+      }
+
+      const latlng = [result.lat, result.lng];
+      mapView.setView(latlng, 17, { animate: true });
+      mapView.drawSchoolLocation(latlng, result.name);
+      setSchoolSearchStatus(`${result.name} 위치로 이동했어요.`);
+    } catch {
+      setSchoolSearchStatus("학교 위치 검색에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      refs.schoolSearchBtn.disabled = false;
+      refs.schoolSearchInput.disabled = false;
+    }
+  }
+
+  function setSchoolSearchStatus(message) {
+    refs.schoolSearchStatus.textContent = message;
+  }
+
   function showImportPreview(imported) {
     refs.importPreviewSummary.textContent = buildImportPreviewText(imported, entries.length);
     refs.importPreviewPanel.classList.remove("hidden");
@@ -344,6 +390,10 @@ function getRefs(documentObj) {
     filterWrap: documentObj.getElementById("filterWrap"),
     legendList: documentObj.getElementById("legendList"),
     myLocationBtn: documentObj.getElementById("myLocationBtn"),
+    schoolSearchForm: documentObj.getElementById("schoolSearchForm"),
+    schoolSearchInput: documentObj.getElementById("schoolSearchInput"),
+    schoolSearchBtn: documentObj.getElementById("schoolSearchBtn"),
+    schoolSearchStatus: documentObj.getElementById("schoolSearchStatus"),
     exportCsvBtn: documentObj.getElementById("exportCsvBtn"),
     exportImageBtn: documentObj.getElementById("exportImageBtn"),
     exportPdfBtn: documentObj.getElementById("exportPdfBtn"),

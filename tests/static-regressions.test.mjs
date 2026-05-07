@@ -6,6 +6,7 @@ const htmlSource = readFileSync(new URL("../index.html", import.meta.url), "utf8
 const configSource = readFileSync(new URL("../src/config.js", import.meta.url), "utf8");
 const uiSource = readFileSync(new URL("../src/ui.js", import.meta.url), "utf8");
 const exportersSource = readFileSync(new URL("../src/exporters.js", import.meta.url), "utf8");
+const schoolSearchSource = readFileSync(new URL("../src/school-search.js", import.meta.url), "utf8");
 
 test("the app boots from focused ES modules instead of the legacy app.js bundle", () => {
   assert.match(htmlSource, /<script type="module" src="src\/main\.js"><\/script>/);
@@ -30,6 +31,17 @@ test("classroom JSON controls and destructive clear controls are present", () =>
   assert.match(htmlSource, /id="importPreviewPanel"/);
   assert.match(htmlSource, /id="mergeImportBtn"/);
   assert.match(htmlSource, /id="clearAllBtn"/);
+});
+
+test("school search controls and map handoff are present", () => {
+  assert.match(htmlSource, /id="myLocationBtn"/);
+  assert.match(htmlSource, /id="schoolSearchForm"/);
+  assert.match(htmlSource, /id="schoolSearchInput"/);
+  assert.match(htmlSource, /id="schoolSearchStatus"/);
+  assert.match(uiSource, /findSchoolLocation/);
+  assert.match(uiSource, /drawSchoolLocation/);
+  assert.match(schoolSearchSource, /nominatim\.openstreetmap\.org\/search/);
+  assert.match(schoolSearchSource, /countrycodes", "kr"/);
 });
 
 test("download object URLs are revoked asynchronously after click", () => {

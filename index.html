@@ -44,6 +44,19 @@
       <div class="filter-wrap" id="filterWrap" role="group" aria-label="카테고리 필터"></div>
       <div class="top-actions">
         <button type="button" id="myLocationBtn" class="btn">내 위치 보기</button>
+        <form class="school-search" id="schoolSearchForm" role="search" aria-label="학교 위치 검색">
+          <label for="schoolSearchInput" class="visually-hidden">학교명 검색</label>
+          <input
+            id="schoolSearchInput"
+            name="schoolSearch"
+            type="search"
+            maxlength="80"
+            placeholder="예: 서울 ○○초등학교"
+            autocomplete="off"
+          />
+          <button type="submit" id="schoolSearchBtn" class="btn primary">찾기</button>
+          <output id="schoolSearchStatus" class="school-search-status" aria-live="polite"></output>
+        </form>
         <details id="exportMenu" class="export-menu">
           <summary class="btn export-summary">내보내기</summary>
           <div class="export-menu-list">

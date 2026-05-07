@@ -8,6 +8,7 @@ export function createCommunityMap(options) {
   const markerLayer = L.layerGroup().addTo(map);
   let userMarker = null;
   let userCircle = null;
+  let schoolMarker = null;
 
   L.control
     .zoom({
@@ -106,8 +107,24 @@ export function createCommunityMap(options) {
     }).addTo(map);
   }
 
+  function drawSchoolLocation(latlng, label = "학교 위치") {
+    if (schoolMarker) map.removeLayer(schoolMarker);
+
+    schoolMarker = L.circleMarker(latlng, {
+      radius: 9,
+      fillColor: "#f2b84b",
+      color: "#5b3a0b",
+      weight: 2,
+      fillOpacity: 1,
+    })
+      .addTo(map)
+      .bindPopup(`<strong>${escapeHtml(label)}</strong><br><small>학교 위치</small>`)
+      .openPopup();
+  }
+
   return {
     closePopup: () => map.closePopup(),
+    drawSchoolLocation,
     drawUserLocation,
     renderMarkers,
     setView: (...args) => map.setView(...args),

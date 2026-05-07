@@ -2,9 +2,9 @@
   "type": "module",
   "scripts": {
     "check": "node --check src/main.js",
-    "test:unit": "node --test tests/static-regressions.test.mjs tests/storage.test.mjs tests/exporters.test.mjs",
+    "test:unit": "node --test tests/static-regressions.test.mjs tests/storage.test.mjs tests/exporters.test.mjs tests/school-search.test.mjs",
     "test:browser": "node --test tests/browser-flow.test.mjs",
     "test:public": "node --test tests/public-deploy.test.mjs",
-    "test": "node --test tests/static-regressions.test.mjs tests/storage.test.mjs tests/exporters.test.mjs tests/browser-flow.test.mjs"
+    "test": "node --test tests/static-regressions.test.mjs tests/storage.test.mjs tests/exporters.test.mjs tests/school-search.test.mjs tests/browser-flow.test.mjs"
   }
 }

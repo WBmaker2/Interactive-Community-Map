@@ -147,6 +147,45 @@ test("mobile layout keeps standards and export controls collapsed", async () => 
   }
 });
 
+test("school search keeps current-location control and opens a school marker", async () => {
+  const { chromium } = loadPlaywright();
+  const { server, url } = await startStaticServer();
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    let requestedUrl = "";
+    await page.route("https://nominatim.openstreetmap.org/search**", async (route) => {
+      requestedUrl = route.request().url();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            lat: "37.5652",
+            lon: "126.9778",
+            name: "서울한빛초등학교",
+            display_name: "서울한빛초등학교, 서울특별시",
+          },
+        ]),
+      });
+    });
+
+    await page.goto(url, { waitUntil: "networkidle" });
+
+    assert.equal(await page.getByRole("button", { name: "내 위치 보기" }).isVisible(), true);
+    await page.locator("#schoolSearchInput").fill("서울한빛초등학교");
+    await page.getByRole("button", { name: "찾기" }).click();
+
+    await page.getByText("서울한빛초등학교 위치로 이동했어요.").waitFor();
+    await page.locator(".leaflet-popup").getByText("학교 위치").waitFor();
+    assert.match(decodeURIComponent(requestedUrl), /서울한빛초등학교/);
+  } finally {
+    await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  }
+});
+
 test("JSON import previews data and can merge records without replacing current work", async () => {
   const { chromium } = loadPlaywright();
   const { server, url } = await startStaticServer();
