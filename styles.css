@@ -322,6 +322,43 @@ main {
   display: none;
 }
 
+.import-preview {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  width: min(94vw, 460px);
+  z-index: 850;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.import-preview.hidden {
+  display: none;
+}
+
+.import-preview h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.import-preview p {
+  margin: 0;
+  color: #345446;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.import-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .form-panel h2 {
   margin: 0 0 8px;
   font-size: 1rem;
@@ -451,5 +488,9 @@ main {
 
   .form-panel {
     bottom: 90px;
+  }
+
+  .import-preview {
+    top: 10px;
   }
 }

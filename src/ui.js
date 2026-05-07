@@ -18,6 +18,7 @@ export function initApp({ windowObj = window, documentObj = document, L = window
   let selectedLatLng = null;
   let activeFilter = "all";
   let editingEntryId = "";
+  let pendingImport = null;
 
   renderCategoryOptions(refs.categorySelect);
   renderLegend(refs.legendList);
@@ -127,22 +128,44 @@ export function initApp({ windowObj = window, documentObj = document, L = window
     if (!file) return;
 
     try {
-      const imported = importAppJson(await file.text());
-      const ok = windowObj.confirm(
-        "가져온 JSON으로 현재 기록과 학급/모둠 정보를 바꿀까요? 이 작업은 되돌릴 수 없어요."
-      );
-      if (!ok) return;
-
-      if (!persistEntries(imported.entries)) return;
-      if (!persistSession(imported.session)) return;
-      entries = imported.entries;
-      session = imported.session;
-      applySessionToInputs(session, refs);
-      renderAll();
+      pendingImport = importAppJson(await file.text(), {
+        idFactory: () => createEntryId(windowObj.crypto),
+      });
+      showImportPreview(pendingImport);
     } catch {
       windowObj.alert("JSON 파일을 읽지 못했어요. 내보낸 지도 JSON인지 확인해 주세요.");
     }
   });
+
+  refs.replaceImportBtn.addEventListener("click", () => {
+    if (!pendingImport) return;
+
+    if (!persistEntries(pendingImport.entries)) return;
+    if (!persistSession(pendingImport.session)) return;
+    entries = pendingImport.entries;
+    session = pendingImport.session;
+    applySessionToInputs(session, refs);
+    hideImportPreview();
+    renderAll();
+  });
+
+  refs.mergeImportBtn.addEventListener("click", () => {
+    if (!pendingImport) return;
+
+    const nextEntries = mergeImportedEntries(entries, pendingImport.entries, () =>
+      createEntryId(windowObj.crypto)
+    );
+    const nextSession = mergeSession(session, pendingImport.session);
+    if (!persistEntries(nextEntries)) return;
+    if (!persistSession(nextSession)) return;
+    entries = nextEntries;
+    session = nextSession;
+    applySessionToInputs(session, refs);
+    hideImportPreview();
+    renderAll();
+  });
+
+  refs.cancelImportBtn.addEventListener("click", hideImportPreview);
 
   refs.clearAllBtn.addEventListener("click", () => {
     const hasSession = session.className || session.groupName;
@@ -174,7 +197,10 @@ export function initApp({ windowObj = window, documentObj = document, L = window
   });
 
   documentObj.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeForm();
+    if (event.key === "Escape") {
+      closeForm();
+      hideImportPreview();
+    }
   });
 
   renderAll();
@@ -222,6 +248,17 @@ export function initApp({ windowObj = window, documentObj = document, L = window
     refs.formPanel.classList.add("hidden");
     selectedLatLng = null;
     editingEntryId = "";
+  }
+
+  function showImportPreview(imported) {
+    refs.importPreviewSummary.textContent = buildImportPreviewText(imported, entries.length);
+    refs.importPreviewPanel.classList.remove("hidden");
+    refs.mergeImportBtn.focus();
+  }
+
+  function hideImportPreview() {
+    refs.importPreviewPanel.classList.add("hidden");
+    pendingImport = null;
   }
 
   function persistEntries(nextEntries) {
@@ -320,6 +357,11 @@ function getRefs(documentObj) {
     statsList: documentObj.getElementById("statsList"),
     classNameInput: documentObj.getElementById("className"),
     groupNameInput: documentObj.getElementById("groupName"),
+    importPreviewPanel: documentObj.getElementById("importPreviewPanel"),
+    importPreviewSummary: documentObj.getElementById("importPreviewSummary"),
+    replaceImportBtn: documentObj.getElementById("replaceImportBtn"),
+    mergeImportBtn: documentObj.getElementById("mergeImportBtn"),
+    cancelImportBtn: documentObj.getElementById("cancelImportBtn"),
   };
 }
 
@@ -362,3 +404,35 @@ function syncDashboardButtonState(refs) {
 }
 
 export { buildCsv };
+
+export function mergeImportedEntries(currentEntries, importedEntries, idFactory = createEntryId) {
+  const usedIds = new Set(currentEntries.map((entry) => entry.id));
+  const mergedImports = importedEntries.map((entry, index) => {
+    if (entry.id && !usedIds.has(entry.id)) {
+      usedIds.add(entry.id);
+      return entry;
+    }
+
+    let nextId = idFactory();
+    if (!nextId || usedIds.has(nextId)) {
+      nextId = `imported-${Date.now().toString(36)}-${index}`;
+    }
+    usedIds.add(nextId);
+    return { ...entry, id: nextId };
+  });
+
+  return [...currentEntries, ...mergedImports];
+}
+
+function mergeSession(currentSession, importedSession) {
+  return {
+    className: importedSession.className || currentSession.className,
+    groupName: importedSession.groupName || currentSession.groupName,
+  };
+}
+
+function buildImportPreviewText(imported, currentCount) {
+  const className = imported.session.className || "없음";
+  const groupName = imported.session.groupName || "없음";
+  return `가져올 기록 ${imported.entries.length}개 · 학급 ${className} · 모둠 ${groupName}. 현재 기록 ${currentCount}개를 전체 교체하거나, 기존 기록 뒤에 추가할 수 있어요.`;
+}

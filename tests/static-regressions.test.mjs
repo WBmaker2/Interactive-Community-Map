@@ -27,6 +27,8 @@ test("classroom JSON controls and destructive clear controls are present", () =>
   assert.match(htmlSource, /id="groupName"/);
   assert.match(htmlSource, /id="exportJsonBtn"/);
   assert.match(htmlSource, /id="importJsonInput"/);
+  assert.match(htmlSource, /id="importPreviewPanel"/);
+  assert.match(htmlSource, /id="mergeImportBtn"/);
   assert.match(htmlSource, /id="clearAllBtn"/);
 });
 

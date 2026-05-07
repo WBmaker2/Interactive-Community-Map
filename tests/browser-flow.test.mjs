@@ -147,6 +147,71 @@ test("mobile layout keeps standards and export controls collapsed", async () => 
   }
 });
 
+test("JSON import previews data and can merge records without replacing current work", async () => {
+  const { chromium } = loadPlaywright();
+  const { server, url } = await startStaticServer();
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(url, { waitUntil: "networkidle" });
+
+    await addEntry(page, {
+      x: 520,
+      y: 470,
+      name: "현재 기록",
+      category: "pride",
+      note: "남겨둘 기록",
+    });
+    await assertPins(page, 1);
+
+    const payload = {
+      schemaVersion: 2,
+      session: { className: "4-2", groupName: "탐험 1모둠" },
+      entries: [
+        {
+          id: "import-one",
+          placeName: "가져온 안전 지점",
+          category: "safety",
+          note: "함께 확인해요",
+          lat: 37.5668,
+          lng: 126.9782,
+          createdAt: "2026-05-07T00:00:00.000Z",
+        },
+      ],
+    };
+
+    await page.locator("#importJsonInput").setInputFiles({
+      name: "community-map.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(payload)),
+    });
+
+    await page.getByText(/가져올 기록 1개/).waitFor();
+    await page.getByText(/학급 4-2/).waitFor();
+    await page.getByRole("button", { name: "기록 추가" }).click();
+
+    await assertPins(page, 2);
+    assert.equal(await page.locator("#className").inputValue(), "4-2");
+    assert.equal(await page.locator("#groupName").inputValue(), "탐험 1모둠");
+
+    await page.locator("#exportMenu").evaluate((node) => {
+      node.open = true;
+    });
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "CSV 내보내기" }).click();
+    const download = await downloadPromise;
+    const csv = await readFile(await download.path(), "utf8");
+
+    assert.match(csv, /현재 기록/);
+    assert.match(csv, /가져온 안전 지점/);
+    assert.match(csv, /"4-2","탐험 1모둠"/);
+  } finally {
+    await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  }
+});
+
 async function assertPins(page, expected) {
   await page.waitForFunction(
     ({ count }) => document.querySelectorAll(".leaflet-marker-icon").length === count,

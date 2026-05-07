@@ -113,6 +113,22 @@
           </div>
         </form>
       </section>
+
+      <section
+        class="import-preview hidden"
+        id="importPreviewPanel"
+        role="dialog"
+        aria-labelledby="importPreviewTitle"
+        aria-live="polite"
+      >
+        <h2 id="importPreviewTitle">JSON 가져오기</h2>
+        <p id="importPreviewSummary"></p>
+        <div class="import-preview-actions">
+          <button type="button" id="replaceImportBtn" class="btn danger">전체 교체</button>
+          <button type="button" id="mergeImportBtn" class="btn primary">기록 추가</button>
+          <button type="button" id="cancelImportBtn" class="btn">취소</button>
+        </div>
+      </section>
     </main>
 
     <script
