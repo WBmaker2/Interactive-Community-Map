@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/main.js",
+    "test:unit": "node --test tests/static-regressions.test.mjs tests/storage.test.mjs tests/exporters.test.mjs",
+    "test:browser": "node --test tests/browser-flow.test.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
